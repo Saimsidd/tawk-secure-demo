@@ -2,47 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Tawk Secure Mode – Load-time Identity</title>
+  <title>Tawk.to Secure Mode – login()</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
 </head>
 <body style="font-family:system-ui,Arial;padding:2rem">
-  <h1>Tawk.to – Secure Mode (visitor before load)</h1>
+  <h1>Tawk.to Secure Mode Demo (login method)</h1>
 
   <script>
-    // Simulated logged-in couple
-    const couple = { name: "Ali & Zara", email: "ali.zara@example.com".trim() };
+    // Simulated logged-in couple account
+    const couple = {
+      name: "Ali & Zara",
+      email: "ali.zara@example.com".trim()
+    };
 
-    // Your deployed API endpoint that returns HMAC(email, secret) in { hash }
+    // Your deployed Vercel endpoint that returns {hash: "..."}
     const API_URL = "https://tawk-secure-demo-git-main-saimsidds-projects.vercel.app/api/tawk-hash";
 
-    (async function init() {
+    async function doLogin() {
       try {
         const res = await fetch(`${API_URL}?email=${encodeURIComponent(couple.email)}`);
         const { hash } = await res.json();
-        if (!hash) { console.error("No hash from API"); return; }
 
-        // 1) Set visitor identity (with hash) BEFORE loading the widget
-        window.Tawk_API = window.Tawk_API || {};
-        window.Tawk_API.visitor = {
-          name: couple.name,
-          email: couple.email,
-          hash: hash
-        };
+        if (!hash) {
+          console.error("No hash returned from API");
+          return;
+        }
 
-        // (Optional) logs
-        window.Tawk_API.onLoad = () => console.log("Tawk loaded (load-time identity)"); 
+        console.log("Hash received:", hash);
 
-        // 2) NOW load the widget script
-        var s1 = document.createElement("script");
-        s1.async = true;
-        s1.src = "https://embed.tawk.to/68a6124001fdb71924bc8a36/1j34bejsn";
-        s1.charset = "UTF-8";
-        s1.setAttribute("crossorigin", "*");
-        document.head.appendChild(s1);
+        // Call login with verified identity
+        window.Tawk_API.login(
+          {
+            userId: couple.email, // must match the string you hashed
+            hash: hash,
+            name: couple.name,
+            email: couple.email
+          },
+          function (error) {
+            if (error) {
+              console.error("Tawk login error:", error);
+            } else {
+              console.log("Tawk login success for", couple.email);
+            }
+          }
+        );
       } catch (e) {
-        console.error("init error", e);
+        console.error("doLogin error", e);
       }
+    }
+
+    // Prepare Tawk_API object
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_API.onLoad = doLogin; // run login after widget loads
+  </script>
+
+  <!-- Your Tawk embed script -->
+  <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+      s1.async=true;
+      s1.src='https://embed.tawk.to/68a6124001fdb71924bc8a36/1j34bejsn'; 
+      s1.charset='UTF-8';
+      s1.setAttribute('crossorigin','*');
+      s0.parentNode.insertBefore(s1,s0);
     })();
   </script>
+
 </body>
 </html>
