@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"/>
-    <title>Tawk Secure Mode UAT</title>
+    <title>Tawk.to – Secure Mode UAT</title>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
   </head>
   <body style="font-family:system-ui,Arial; padding:2rem;">
@@ -10,41 +10,43 @@
     <p>This page identifies the logged-in couple to Tawk using a server-side HMAC.</p>
 
     <script>
-      // Simulate a logged-in couple
+      // 1) Simulate a logged-in couple (replace with real values later)
       const couple = { name: "Ali & Zara", email: "ali.zara@example.com" };
 
+      // 2) Identify the couple AFTER the widget loads
       async function identifyCouple() {
-        // Call your API to get the secure hash
-        const res = await fetch(`/api/tawk-hash?email=${encodeURIComponent(couple.email)}`);
-        const data = await res.json();
+        // If index.html and the API are deployed on the same Vercel project, this relative URL works:
+        const api = "/api/tawk-hash";
+        // If you’re testing this HTML somewhere else (e.g., CodePen), use your full Vercel URL:
+        // const api = "https://<your-vercel-project>.vercel.app/api/tawk-hash";
 
+        // Fetch the secure hash from your backend
+        const res = await fetch(`${api}?email=${encodeURIComponent(couple.email)}`);
+        const data = await res.json();
         if (!data.hash) {
-          console.error("No hash received:", data);
+          console.error("No hash from API:", data);
           return;
         }
 
         // Pass verified identity to Tawk
         if (window.Tawk_API && window.Tawk_API.setAttributes) {
-          window.Tawk_API.setAttributes({
-            name: couple.name,
-            email: couple.email,
-            hash: data.hash
-          }, function (err) {
-            if (err) console.error("Tawk setAttributes error:", err);
-          });
+          window.Tawk_API.setAttributes(
+            { name: couple.name, email: couple.email, hash: data.hash },
+            function (err) { if (err) console.error("Tawk setAttributes error:", err); }
+          );
         }
       }
 
-      // Poll until Tawk API is available
-      const tawkReady = setInterval(() => {
+      // Wait until the Tawk widget is ready, then call identifyCouple()
+      const waitForTawk = setInterval(() => {
         if (window.Tawk_API && window.Tawk_API.setAttributes) {
-          clearInterval(tawkReady);
+          clearInterval(waitForTawk);
           identifyCouple();
         }
-      }, 500);
+      }, 300);
     </script>
 
-    <!-- Tawk.to widget code -->
+    <!-- 3) Your existing Tawk widget snippet (DO NOT change) -->
     <!--Start of Tawk.to Script-->
     <script type="text/javascript">
     var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
@@ -61,3 +63,4 @@
 
   </body>
 </html>
+
