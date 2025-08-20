@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Tawk Secure Mode UAT</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  </head>
+  <body style="font-family:system-ui,Arial; padding:2rem;">
+    <h1>Tawk.to – Secure Mode UAT</h1>
+    <p>This page identifies the logged-in couple to Tawk using a server-side HMAC.</p>
+
+    <script>
+      // Simulate a logged-in couple
+      const couple = { name: "Ali & Zara", email: "ali.zara@example.com" };
+
+      async function identifyCouple() {
+        // Call your API to get the secure hash
+        const res = await fetch(`/api/tawk-hash?email=${encodeURIComponent(couple.email)}`);
+        const data = await res.json();
+
+        if (!data.hash) {
+          console.error("No hash received:", data);
+          return;
+        }
+
+        // Pass verified identity to Tawk
+        if (window.Tawk_API && window.Tawk_API.setAttributes) {
+          window.Tawk_API.setAttributes({
+            name: couple.name,
+            email: couple.email,
+            hash: data.hash
+          }, function (err) {
+            if (err) console.error("Tawk setAttributes error:", err);
+          });
+        }
+      }
+
+      // Poll until Tawk API is available
+      const tawkReady = setInterval(() => {
+        if (window.Tawk_API && window.Tawk_API.setAttributes) {
+          clearInterval(tawkReady);
+          identifyCouple();
+        }
+      }, 500);
+    </script>
+
+    <!-- Tawk.to widget code -->
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+      s1.async=true;
+      s1.src='https://embed.tawk.to/68a6124001fdb71924bc8a36/1j34bejsn';
+      s1.charset='UTF-8';
+      s1.setAttribute('crossorigin','*');
+      s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
+
+  </body>
+</html>
