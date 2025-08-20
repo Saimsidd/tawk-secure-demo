@@ -1,66 +1,86 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <title>Tawk.to – Secure Mode UAT</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  </head>
-  <body style="font-family:system-ui,Arial; padding:2rem;">
-    <h1>Tawk.to – Secure Mode UAT</h1>
-    <p>This page identifies the logged-in couple to Tawk using a server-side HMAC.</p>
+<head>
+  <meta charset="utf-8"/>
+  <title>Tawk Secure Mode – Debug</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+</head>
+<body style="font-family:system-ui,Arial;padding:2rem">
+  <h1>Tawk.to – Secure Mode Debug</h1>
+  <pre id="log" style="background:#f6f6f6;padding:1rem;border:1px solid #ddd;max-width:800px;white-space:pre-wrap"></pre>
 
-    <script>
-      // 1) Simulate a logged-in couple (replace with real values later)
-      const couple = { name: "Ali & Zara", email: "ali.zara@example.com" };
+  <script>
+    const LOG = (...args) => {
+      console.log(...args);
+      const el = document.getElementById('log');
+      el.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ') + '\n';
+    };
 
-      // 2) Identify the couple AFTER the widget loads
-      async function identifyCouple() {
-        // If index.html and the API are deployed on the same Vercel project, this relative URL works:
-        const api = "/api/tawk-hash";
-        // If you’re testing this HTML somewhere else (e.g., CodePen), use your full Vercel URL:
-        // const api = "https://<your-vercel-project>.vercel.app/api/tawk-hash";
+    // 1) Simulate logged-in couple for test
+    const couple = { name: "Ali & Zara", email: "ali.zara@example.com" };
 
-        // Fetch the secure hash from your backend
-        const res = await fetch(`${api}?email=${encodeURIComponent(couple.email)}`);
+    // 2) Your API endpoint (explicit full URL)
+    const API_URL = "https://tawk-secure-demo-git-main-saimsidds-projects.vercel.app/api/tawk-hash";
+
+    async function identifyCouple() {
+      try {
+        LOG("Fetching hash for", couple.email, "from", API_URL);
+        const res = await fetch(`${API_URL}?email=${encodeURIComponent(couple.email)}`);
         const data = await res.json();
-        if (!data.hash) {
-          console.error("No hash from API:", data);
+        LOG("Hash response:", data);
+
+        if (!data || !data.hash) {
+          LOG("No hash received; aborting setAttributes");
           return;
         }
 
-        // Pass verified identity to Tawk
         if (window.Tawk_API && window.Tawk_API.setAttributes) {
-          window.Tawk_API.setAttributes(
-            { name: couple.name, email: couple.email, hash: data.hash },
-            function (err) { if (err) console.error("Tawk setAttributes error:", err); }
-          );
+          const attrs = { name: couple.name, email: couple.email, hash: data.hash };
+          LOG("Calling setAttributes with:", attrs);
+          window.Tawk_API.setAttributes(attrs, function (err) {
+            if (err) LOG("Tawk setAttributes error:", err);
+            else LOG("Tawk setAttributes OK");
+          });
+        } else {
+          LOG("Tawk_API.setAttributes NOT available");
         }
+      } catch (e) {
+        LOG("identifyCouple error:", e);
       }
+    }
 
-      // Wait until the Tawk widget is ready, then call identifyCouple()
-      const waitForTawk = setInterval(() => {
-        if (window.Tawk_API && window.Tawk_API.setAttributes) {
-          clearInterval(waitForTawk);
-          identifyCouple();
-        }
-      }, 300);
-    </script>
+    // Optional: listen to widget lifecycle
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_API.onLoad = function() { LOG("Tawk onLoad fired"); };
+    window.Tawk_API.onChatStarted = function() { LOG("Tawk onChatStarted"); };
+    window.Tawk_API.onPrechatSubmit = function(data){ LOG("Prechat submit", data); };
+    window.Tawk_API.onStatusChange = function(s){ LOG("Status:", s); };
 
-    <!-- 3) Your existing Tawk widget snippet (DO NOT change) -->
-    <!--Start of Tawk.to Script-->
-    <script type="text/javascript">
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-    (function(){
-      var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-      s1.async=true;
-      s1.src='https://embed.tawk.to/68a6124001fdb71924bc8a36/1j34bejsn';
-      s1.charset='UTF-8';
-      s1.setAttribute('crossorigin','*');
-      s0.parentNode.insertBefore(s1,s0);
-    })();
-    </script>
-    <!--End of Tawk.to Script-->
+    // 3) Wait until the widget exposes setAttributes, then identify
+    const waitForTawk = setInterval(() => {
+      if (window.Tawk_API && window.Tawk_API.setAttributes) {
+        clearInterval(waitForTawk);
+        LOG("Tawk API ready; identifying couple…");
+        identifyCouple();
+      } else {
+        LOG("Waiting for Tawk API…");
+      }
+    }, 400);
+  </script>
 
-  </body>
+  <!-- 4) Your exact Tawk widget snippet (do not change the src) -->
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/68a6124001fdb71924bc8a36/1j34bejsn';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+</body>
 </html>
-
